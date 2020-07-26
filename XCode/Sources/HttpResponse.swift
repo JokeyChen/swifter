@@ -80,7 +80,7 @@ public enum HttpResponseBody {
 public enum HttpResponse {
 
     case switchProtocols([String: String], (Socket) -> Void)
-    case ok(HttpResponseBody), created, accepted
+    case ok(HttpResponseBody), created(HttpResponseBody), accepted
     case movedPermanently(String)
     case movedTemporarily(String)
     case badRequest(HttpResponseBody?), unauthorized, forbidden, notFound
@@ -135,6 +135,13 @@ public enum HttpResponse {
             case .data(_, let contentType): headers["Content-Type"] = contentType
             default:break
             }
+	case .created(let body):
+            switch body {
+            case .json: headers["Content-Type"] = "application/json"
+            case .html: headers["Content-Type"] = "text/html"
+            case .data(_, let contentType): headers["Content-Type"] = contentType
+            default:break
+            }
         case .movedPermanently(let location):
             headers["Location"] = location
         case .movedTemporarily(let location):
@@ -153,6 +160,7 @@ public enum HttpResponse {
     func content() -> (length: Int, write: ((HttpResponseBodyWriter) throws -> Void)?) {
         switch self {
         case .ok(let body)             : return body.content()
+	case .created(let body)        : return body.content()
         case .badRequest(let body)     : return body?.content() ?? (-1, nil)
         case .raw(_, _, _, let writer) : return (-1, writer)
         default                        : return (-1, nil)
